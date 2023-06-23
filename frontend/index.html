@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Gerenciador de Alimentação de Thor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    form {
+      margin-bottom: 20px;
+    }
+
+    input[type="text"],
+    select {
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    button {
+      padding: 10px 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Gerenciador de Alimentação de Thor</h1>
+
+  <form id="feedingForm">
+    <!-- <label for="time">Horário:</label> -->
+    <!-- <input type="text" id="time" name="time" placeholder="Exemplo: 08:00" required> -->
+    <label for="meal">Refeição:</label>
+    <input type="text" id="meal" name="meal" placeholder="Exemplo: Ração seca" required>
+    <button type="submit">Adicionar Horário de Alimentação</button>
+  </form>
+
+  <table id="scheduleTable">
+    <thead>
+      <tr>
+        <th>Horário</th>
+        <th>Refeição</th>
+        <th>Ação</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    // Função para enviar uma requisição POST para adicionar um horário de alimentação
+    function addFeedingTime(event) {
+      event.preventDefault();
+
+      //const timeInput = document.getElementById('time');
+      const mealInput = document.getElementById('meal');
+
+      const quemEQuando = {
+        dia: getFormattedDate(),
+        meal: mealInput.value
+      };
+
+      fetch('http://127.0.0.1:3000/schedule/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(quemEQuando)
+      })
+        .then(response => {
+          if (response.ok) {
+            // timeInput.value = '';
+            mealInput.value = '';
+            fetchFeedingSchedule();
+          } else {
+            console.error('Erro ao adicionar horário de alimentação.');
+          }
+        })
+        .catch(error => console.error(error));
+    }
+
+    // Função para enviar uma requisição GET para obter o cronograma de alimentação
+    function fetchFeedingSchedule() {
+      fetch('http://127.0.0.1:3000/schedule/')
+        .then(response => response.json())
+        .then(data => {
+          const scheduleTable = document.getElementById('scheduleTable');
+          const scheduleTableBody = scheduleTable.querySelector('tbody');
+          scheduleTableBody.innerHTML = '';
+
+          data.forEach(feedingTime => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${feedingTime.time}</td>
+              <td>${feedingTime.meal}</td>
+              <td>
+                <button onclick="deleteFeedingTime('${feedingTime.time}')">Remover</button>
+              </td>
+            `;
+            scheduleTableBody.appendChild(row);
+          });
+        })
+        .catch(error => console.error(error));
+    }
+
+    // Função para enviar uma requisição DELETE para remover um horário de alimentação
+    function deleteFeedingTime(time) {
+      fetch(`http://127.0.0.1:3000/schedule/${time}`, {
+        method: 'DELETE'
+      })
+        .then(response => {
+          if (response.ok) {
+            fetchFeedingSchedule();
+          } else {
+            console.error('Erro ao remover horário de alimentação.');
+          }
+        })
+        .catch(error => console.error(error));
+    }
+
+    // Carregar o cronograma de alimentação inicial
+    fetchFeedingSchedule();
+
+    // Adicionar o evento de submit ao formulário
+    const feedingForm = document.getElementById('feedingForm');
+    feedingForm.addEventListener('submit', addFeedingTime);
+
+    function getFormattedDate() {
+      const date = new Date();
+
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // Mês começa do zero
+      const year = String(date.getFullYear());
+
+      const formattedDate = `${day}/${month}/${year}`;
+
+      return formattedDate;
+    }
+
+  </script>
+</body>
+
+</html>
